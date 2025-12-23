@@ -1,0 +1,11 @@
+##--> Grafana Instance (only applicable if Grafana Operator is on)
+apiVersion: grafana.integreatly.org/v1beta1
+kind: Grafana
+metadata:
+  name: grafana
+  namespace: grafana
+  labels:
+    dashboards: vllm
+spec:
+  ingress:
+    enabled: true
