@@ -1,0 +1,115 @@
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDashboard
+metadata:
+  name: vllm-full-monitoring
+  namespace: grafana
+spec:
+  allowCrossNamespaceImport: false
+  instanceSelector:
+    matchLabels:
+      dashboards: vllm
+  json: |
+    {
+      "title": "vLLM Full Observability (Latency / Tokens / Queue / Cache)",
+      "panels": [
+        {
+          "title": "p95 Latency (seconds)",
+          "type": "timeseries",
+          "targets": [
+            {
+              "expr": "histogram_quantile(0.95, sum by (le, model_name)(rate(vllm:e2e_request_latency_seconds_bucket[5m])))"
+            }
+          ]
+        },
+        {
+          "title": "Requests Running / Waiting / Swapped",
+          "type": "timeseries",
+          "targets": [
+            {
+              "expr": "sum by (model_name)(vllm:num_requests_running)"
+            },
+            {
+              "expr": "sum by (model_name)(vllm:num_requests_waiting)"
+            },
+            {
+              "expr": "sum by (model_name)(vllm:num_requests_swapped)"
+            }
+          ]
+        },
+        {
+          "title": "KV Cache Usage (GPU / CPU)",
+          "type": "timeseries",
+          "targets": [
+            {
+              "expr": "avg by (model_name)(vllm:gpu_cache_usage_perc)"
+            },
+            {
+              "expr": "avg by (model_name)(vllm:cpu_cache_usage_perc)"
+            }
+          ]
+        },
+        {
+          "title": "Prompt Tokens Total",
+          "type": "timeseries",
+          "targets": [
+            {
+              "expr": "sum by (model_name)(rate(vllm:prompt_tokens_total[5m]))"
+            }
+          ]
+        },
+        {
+          "title": "Generation Tokens Total",
+          "type": "timeseries",
+          "targets": [
+            {
+              "expr": "sum by (model_name)(rate(vllm:generation_tokens_total[5m]))"
+            }
+          ]
+        },
+        {
+          "title": "Time to First Token (TTFT) p95",
+          "type": "timeseries",
+          "targets": [
+            {
+              "expr": "histogram_quantile(0.95, sum by (le, model_name)(rate(vllm:time_to_first_token_seconds_bucket[5m])))"
+            }
+          ]
+        },
+        {
+          "title": "Inter-Token Latency (p95)",
+          "type": "timeseries",
+          "targets": [
+            {
+              "expr": "histogram_quantile(0.95, sum by (le, model_name)(rate(vllm:time_per_output_token_seconds_bucket[5m])))"
+            }
+          ]
+        },
+        {
+          "title": "Request Queue Time (p95)",
+          "type": "timeseries",
+          "targets": [
+            {
+              "expr": "histogram_quantile(0.95, sum by (le, model_name)(rate(vllm:request_queue_time_seconds_bucket[5m])))"
+            }
+          ]
+        },
+        {
+          "title": "Request Inference Time (p95)",
+          "type": "timeseries",
+          "targets": [
+            {
+              "expr": "histogram_quantile(0.95, sum by (le, model_name)(rate(vllm:request_inference_time_seconds_bucket[5m])))"
+            }
+          ]
+        },
+        {
+          "title": "Request Success / Errors",
+          "type": "timeseries",
+          "targets": [
+            {
+              "expr": "sum by (finished_reason, model_name)(rate(vllm:request_success_total[5m]))"
+            }
+          ]
+        }
+      ]
+    }
