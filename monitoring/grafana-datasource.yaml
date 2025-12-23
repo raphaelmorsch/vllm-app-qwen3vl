@@ -1,0 +1,20 @@
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDatasource
+metadata:
+  name: prometheus-ds
+  namespace: grafana
+spec:
+  datasource:
+    name: Prometheus
+    type: prometheus
+    access: proxy
+    url: https://thanos-querier.openshift-monitoring.svc:9091 ##--> tem que ser o Service do Thanos
+    isDefault: true
+    jsonData:
+      tlsSkipVerify: true
+      httpMethod: POST
+    secureJsonData:
+      httpHeaderValue1: "Bearer <TOKEN_DO_SA>"
+  instanceSelector:
+    matchLabels:
+      dashboards: vllm
