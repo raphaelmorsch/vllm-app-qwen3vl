@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Qwen3-VL – Demo UI (Quarkus)</title>
+  <style>
+    body { font-family: system-ui, Arial; margin: 2rem; max-width: 920px; }
+    textarea { width: 100%; min-height: 120px; }
+    .row { margin: 1rem 0; }
+    .answer { white-space: pre-wrap; background: #f6f6f6; padding: 1rem; border-radius: 8px; }
+    .err { color: #b00020; }
+  </style>
+</head>
+<body>
+  <h1>Qwen3-VL – Inferência Multimodal</h1>
+
+  <form action="/infer" method="post" enctype="multipart/form-data">
+    <div class="row">
+      <label><b>Prompt</b></label><br/>
+      <textarea name="prompt">{prompt ?: "Descreva a imagem em português."}</textarea>
+    </div>
+
+    <div class="row">
+      <label><b>Imagem</b></label><br/>
+      <input type="file" name="image" accept="image/*" required>
+    </div>
+
+    <div class="row">
+      <button type="submit">Inferir</button>
+    </div>
+  </form>
+
+  {#if error}
+    <p class="err"><b>Erro:</b> {error}</p>
+  {/if}
+
+  {#if answer}
+    <h2>Resposta</h2>
+    <div class="answer">{answer}</div>
+  {/if}
+</body>
+</html>
