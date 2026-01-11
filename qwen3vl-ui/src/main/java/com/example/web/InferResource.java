@@ -70,18 +70,19 @@ public class InferResource {
         return t.getClass().getName();
     }
 
-    private String render(String prompt, String answer, String error) {
+    private String render(String prompt, String answer, String error, String imageDataUrl) {
         return index
                 .data("prompt", prompt == null ? "" : prompt)
                 .data("answer", answer == null ? "" : answer)
                 .data("error", error == null ? "" : error)
+                .data("imageDataUrl", imageDataUrl == null ? "" : imageDataUrl)
                 .render();
     }
 
     @GET
     @Produces(MediaType.TEXT_HTML)
     public String home() {
-        return render(defaultPrompt, "", "");
+        return render(defaultPrompt, "", "", "");
     }
 
     public static class InferForm {
@@ -110,7 +111,7 @@ public class InferResource {
 
         if (form == null || form.image == null || form.image.length == 0) {
             registry.counter("qwen3vl_infer_total", "status", "bad_request").increment();
-            return render(prompt, "", "Imagem vazia.");
+            return render(prompt, "", "Imagem vazia.", "");
         }
 
         // Só para UX: se você estiver com placeholder/local ainda
@@ -118,7 +119,7 @@ public class InferResource {
             String bu = baseUrl.trim();
             if (bu.isEmpty() || bu.contains("localhost")) {
                 registry.counter("qwen3vl_infer_total", "status", "not_configured").increment();
-                return render(prompt, "", "Backend vLLM ainda não configurado (VLLM_BASE_URL).");
+                return render(prompt, "", "Backend vLLM ainda não configurado (VLLM_BASE_URL).", "");
             }
         }
 
@@ -152,7 +153,7 @@ public class InferResource {
             }
 
             registry.counter("qwen3vl_infer_total", "status", "success").increment();
-            return render(prompt, answer, "");
+            return render(prompt, answer, "", dataUrl);
 
         } catch (Exception e) {
             timer.record(Duration.ofNanos(System.nanoTime() - start));
@@ -161,7 +162,7 @@ public class InferResource {
             String shortMsg = bestMessage(e);
             String details = shortMsg + "\n\n" + stackTrace(e);
 
-            return render(prompt, "", details);
+            return render(prompt, "", details, dataUrl);
         }
     }
 }

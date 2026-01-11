@@ -386,21 +386,19 @@
             </div>
 
             <div class="rh-card__body">
-              <div id="img-empty" style="color:#6a6e73;">
-                Nenhuma imagem selecionada ainda.
-              </div>
-
-              <img id="img-preview"
-                  src=""
-                  alt="Pré-visualização da imagem"
-                  style="display:none;width:100%;height:auto;border-radius:12px;border:1px solid #d2d2d2;" />
-
-              <div id="img-meta"
-                  style="display:none;margin-top:8px;color:#6a6e73;font-size:0.9rem;">
-                <span id="img-name"></span>
-              </div>
+              {#if imageDataUrl && imageDataUrl != ""}
+                <img id="img-preview"
+                    src="{imageDataUrl}"
+                    alt="Imagem enviada"
+                    style="width:100%;height:auto;border-radius:12px;border:1px solid #d2d2d2;" />
+              {#else}
+                <div id="img-empty" style="color:#6a6e73;">
+                  Nenhuma imagem selecionada ainda.
+                </div>
+              {/if}
             </div>
           </div>
+
 
         </aside>
       </div>
@@ -412,8 +410,15 @@
       const input = document.getElementById('image-input');
       const img = document.getElementById('img-preview');
       const empty = document.getElementById('img-empty');
-      const meta = document.getElementById('img-meta');
-      const nameEl = document.getElementById('img-name');
+
+      // Se o servidor já renderizou uma imagem (após POST), mantenha o card preenchido
+      if (img && img.getAttribute('src')) {
+        const s = img.getAttribute('src').trim();
+        if (s && s.startsWith('data:image')) {
+          img.style.display = 'block';
+          if (empty) empty.style.display = 'none';
+        }
+      }
 
       if (!input) return;
 
@@ -424,29 +429,22 @@
         if (!file) {
           if (objectUrl) URL.revokeObjectURL(objectUrl);
           objectUrl = null;
-
           img.style.display = 'none';
           img.src = '';
-          empty.style.display = 'block';
-          meta.style.display = 'none';
-          nameEl.textContent = '';
+          if (empty) empty.style.display = 'block';
           return;
         }
 
-        // Mostra nome/metadata
-        nameEl.textContent = file.name + (file.size ? ` • ${(file.size/1024).toFixed(1)} KB` : '');
-        meta.style.display = 'block';
-
-        // Preview rápido e eficiente
         if (objectUrl) URL.revokeObjectURL(objectUrl);
         objectUrl = URL.createObjectURL(file);
 
         img.src = objectUrl;
         img.style.display = 'block';
-        empty.style.display = 'none';
+        if (empty) empty.style.display = 'none';
       });
     })();
   </script>
+
 
 </body>
 </html>
