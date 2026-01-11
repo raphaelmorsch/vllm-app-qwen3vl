@@ -377,5 +377,63 @@ Layout típico:
 [     GPU Util     |    GPU Memory        ]
 ```
 
+## **13\. Aplicação para Inferência
+  Em /qwen3vl-ui há uma aplicação Quarkus pronta para fazer inferências para o Modelo. 
+  A Aplicação está pronta para Deploy no OpenShift via S2I com BuildConfig, mas ainda é necessário adicionar a env 
+  "VLLM_BASE_URL" apontando para o Service ou Route (depende de onde a aplicação está)
+
+  Ainda é possível adicionar a Aplicação à Lista de Applications do OpenShift AI criando o OdhApplication, exemplo:
+```
+  apiVersion: dashboard.opendatahub.io/v1
+  kind: OdhApplication
+  metadata:
+    annotations:
+      opendatahub.io/categories: 'Model serving,Model inference,Data visualization'
+      platform.opendatahub.io/instance.name: default-dashboard
+      platform.opendatahub.io/type: OpenShift AI Self-Managed
+      platform.opendatahub.io/version: 3.0.0
+    name: quarkus-inferencia
+    namespace: redhat-ods-applications
+    labels:
+      app: rhods-dashboard
+      app.kubernetes.io/part-of: rhods-dashboard
+      app.opendatahub.io/rhods-dashboard: 'true'
+      platform.opendatahub.io/part-of: dashboard
+  spec:
+    img: |-
+      <svg width="160" height="160" viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg">
+        <rect x="10" y="10" width="140" height="140" rx="24" fill="#1C1E23"/>
+        <path d="M46 108V52h20c10 0 18 8 18 18 0 10-8 18-18 18H60v20H46zm14-34h6c5 0 9-4 9-9s-4-9-9-9h-6v18z" fill="#FFFFFF"/>
+        <path d="M92 108V52h14v42h22v14H92z" fill="#FFFFFF"/>
+      </svg>
+    getStartedLink: 'https://vllm-app-qwen-3-vl-git-qwen3vl.apps.ocp.z8dds.sandbox5479.opentlc.com/'
+    route: ''
+    displayName: Aplicação Inferência Multimodal
+    kfdefApplications: []
+    support: self-supported
+    provider: Internal (Quarkus)
+    docsLink: 'https://quarkus.io/'
+    quickStart: ''
+    getStartedMarkDown: |-
+      # Aplicação Quarkus Inferência
+
+      Esta aplicação fornece uma interface simples para:
+
+      - Selecionar uma imagem local (pré-visualização imediata)
+      - Enviar a imagem para um endpoint de inferência
+      - Exibir o resultado retornado pelo serviço (ex: classe, score, texto, etc.)
+
+      ## Fluxo
+      1. Você escolhe uma imagem no navegador.
+      2. A imagem é mostrada na UI imediatamente (prévia).
+      3. Ao clicar em **Executar inferência**, o frontend envia a imagem para o backend Quarkus.
+      4. O Quarkus chama o endpoint de inferência configurado e retorna o resultado para a UI.
+
+      ## Dicas
+      - Garanta que exista um **Route** para a aplicação e que o nome dele esteja em `spec.route`.
+      - Se o endpoint exigir autenticação (API key), configure via Secret/ConfigMap e injete como env var no Deployment.
+    description: 'UI simples em Quarkus para enviar uma imagem e executar inferência (vLLM / endpoint de inferência), exibindo a prévia da imagem e o resultado.'
+    category: Self-managed
+```
 
 
