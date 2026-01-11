@@ -81,7 +81,7 @@ public class InferResource {
             String dataUrl = "data:image/jpeg;base64," + Base64.getEncoder().encodeToString(form.image);
 
             ChatCompletionRequest req = new ChatCompletionRequest(
-                    "Qwen3-VL",
+                    "qwen3-vl-4b-instruct",
                     List.of(new ChatCompletionRequest.Message("user",
                             List.of(
                                     ChatCompletionRequest.ContentPart.text(prompt),
