@@ -43,8 +43,8 @@ public class InferResource {
     public String home() {
         return index
             .data("prompt", "Descreva a imagem em português.")
-            .data("error", null)
-            .data("answer", null)
+            .data("error", "")
+            .data("answer", "")
             .render();
     }
 
