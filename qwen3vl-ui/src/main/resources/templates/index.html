@@ -351,9 +351,9 @@
             </div>
 
             <div class="field">
-              <label for="image">Imagem</label>
+              <label for="image-input">Imagem</label>
               <div class="help">PNG/JPG (quanto menor, melhor para testes). O arquivo é enviado apenas para inferência.</div>
-              <input id="image" type="file" name="image" accept="image/*" required />
+              <input id="image-input" type="file" name="image" accept="image/*" required />
             </div>
 
             <div class="actions">
@@ -373,37 +373,72 @@
 
       <!-- Card lateral -->
       <aside class="card">
-        <div class="card-header">
-          <h2 class="card-title" style="font-size:18px;">Como isso funciona</h2>
-          <p class="card-subtitle" style="max-width: none;">
-            A aplicação envia o prompt e a imagem (base64) para o endpoint compatível com OpenAI do vLLM
-            e renderiza a resposta.
-          </p>
-        </div>
-
-        <div class="card-body">
-          <div class="callout">
-            <strong>Configuração do backend</strong>
-            <p>
-              Você pode apontar o endpoint via variável de ambiente <code>VLLM_BASE_URL</code> e,
-              se necessário, usar <code>VLLM_API_KEY</code>.
-            </p>
+        <div class="rh-card">
+          <div class="rh-card__header">
+            <h2 class="rh-card__title">Imagem enviada</h2>
           </div>
 
-          <div style="height: 12px;"></div>
+          <div class="rh-card__body">
+            <div id="img-empty" style="color:#6a6e73;">
+              Nenhuma imagem selecionada ainda.
+            </div>
 
-          <div class="callout">
-            <strong>Próximos passos</strong>
-            <p>
-              1) Subir o Model Server do Qwen3-VL<br/>
-              2) Atualizar <code>VLLM_BASE_URL</code><br/>
-              3) Validar latência/throughput com as métricas em Prometheus/Grafana
-            </p>
+            <img id="img-preview"
+                src=""
+                alt="Pré-visualização da imagem"
+                style="display:none;width:100%;height:auto;border-radius:12px;border:1px solid #d2d2d2;" />
+
+            <div id="img-meta"
+                style="display:none;margin-top:8px;color:#6a6e73;font-size:0.9rem;">
+              <span id="img-name"></span>
+            </div>
           </div>
         </div>
+
       </aside>
 
     </div>
   </main>
+  <script>
+    (function () {
+      const input = document.getElementById('image-input');
+      const img = document.getElementById('img-preview');
+      const empty = document.getElementById('img-empty');
+      const meta = document.getElementById('img-meta');
+      const nameEl = document.getElementById('img-name');
+
+      if (!input) return;
+
+      let objectUrl = null;
+
+      input.addEventListener('change', function () {
+        const file = input.files && input.files[0];
+        if (!file) {
+          if (objectUrl) URL.revokeObjectURL(objectUrl);
+          objectUrl = null;
+
+          img.style.display = 'none';
+          img.src = '';
+          empty.style.display = 'block';
+          meta.style.display = 'none';
+          nameEl.textContent = '';
+          return;
+        }
+
+        // Mostra nome/metadata
+        nameEl.textContent = file.name + (file.size ? ` • ${(file.size/1024).toFixed(1)} KB` : '');
+        meta.style.display = 'block';
+
+        // Preview rápido e eficiente
+        if (objectUrl) URL.revokeObjectURL(objectUrl);
+        objectUrl = URL.createObjectURL(file);
+
+        img.src = objectUrl;
+        img.style.display = 'block';
+        empty.style.display = 'none';
+      });
+    })();
+  </script>
+
 </body>
 </html>
