@@ -37,8 +37,8 @@ public class InferResource {
     MeterRegistry registry;
 
     // Somente para o futuro (quando você habilitar auth)
-    @ConfigProperty(name = "vllm.api-key", defaultValue = "")
-    String apiKey;
+    //@ConfigProperty(name = "vllm.api-key", defaultValue = "")
+    //String apiKey;
 
     // Apenas para mensagens amigáveis no UI (o RestClient usa quarkus.rest-client.vllm.url)
     @ConfigProperty(name = "vllm.base-url", defaultValue = "")
