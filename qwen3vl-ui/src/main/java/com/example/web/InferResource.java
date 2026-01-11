@@ -4,6 +4,7 @@ import com.openshiftai.vllm.ChatCompletionRequest;
 import com.openshiftai.vllm.ChatCompletionResponse;
 import com.openshiftai.vllm.VllmClient;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.quarkus.qute.Location;
 import io.quarkus.qute.Template;
 import io.quarkus.qute.TemplateInstance;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -21,7 +22,9 @@ import java.util.List;
 @ApplicationScoped
 public class InferResource {
 
-    @Inject Template index;
+    @Inject
+    @Location("index.html")
+    Template index;
 
     @Inject @RestClient VllmClient vllm;
 
