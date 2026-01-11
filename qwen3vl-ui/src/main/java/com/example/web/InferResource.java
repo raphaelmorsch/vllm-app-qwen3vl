@@ -32,6 +32,12 @@ public class InferResource {
     @ConfigProperty(name = "vllm.api-key", defaultValue = "")
     String apiKey;
 
+    private static String stackTrace(Throwable t) {
+        var sw = new java.io.StringWriter();
+        t.printStackTrace(new java.io.PrintWriter(sw));
+        return sw.toString();
+    }
+
     @GET
     @Produces(MediaType.TEXT_HTML)
     public String home() {
@@ -95,9 +101,19 @@ public class InferResource {
             registry.counter("qwen3vl_infer_total", "status", "success").increment();
             return index.data("prompt", prompt).data("answer", answer).render();
 
-        } catch (Exception e) {
-            registry.counter("qwen3vl_infer_total", "status", "error").increment();
-            return index.data("prompt", form.prompt).data("error", e.getMessage()).render();
-        }
+            } catch (Exception e) {
+                registry.counter("qwen3vl_infer_total", "status", "error").increment();
+
+                String details = (e.getMessage() != null && !e.getMessage().isBlank())
+                        ? e.getMessage()
+                        : stackTrace(e);
+
+                return index
+                        .data("prompt", form.prompt == null ? "" : form.prompt)
+                        .data("answer", "")
+                        .data("error", details)
+                        .render();
+            }
+
     }
 }
