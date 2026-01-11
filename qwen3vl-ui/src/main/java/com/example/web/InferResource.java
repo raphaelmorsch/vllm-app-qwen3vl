@@ -4,6 +4,7 @@ import com.openshiftai.vllm.ChatCompletionRequest;
 import com.openshiftai.vllm.ChatCompletionResponse;
 import com.openshiftai.vllm.VllmClient;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import io.quarkus.qute.Location;
 import io.quarkus.qute.Template;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -14,6 +15,9 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.jboss.resteasy.reactive.PartType;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.time.Duration;
 import java.util.Base64;
 import java.util.List;
 
@@ -25,27 +29,59 @@ public class InferResource {
     @Location("index.html")
     Template index;
 
-    @Inject @RestClient VllmClient vllm;
+    @Inject
+    @RestClient
+    VllmClient vllm;
 
-    @Inject MeterRegistry registry;
+    @Inject
+    MeterRegistry registry;
 
+    // Somente para o futuro (quando você habilitar auth)
     @ConfigProperty(name = "vllm.api-key", defaultValue = "")
     String apiKey;
 
+    // Apenas para mensagens amigáveis no UI (o RestClient usa quarkus.rest-client.vllm.url)
+    @ConfigProperty(name = "vllm.base-url", defaultValue = "")
+    String baseUrl;
+
+    @ConfigProperty(name = "vllm.model", defaultValue = "qwen3-vl-4b-instruct")
+    String modelId;
+
+    @ConfigProperty(name = "vllm.default-prompt", defaultValue = "Descreva a imagem em português.")
+    String defaultPrompt;
+
+    @ConfigProperty(name = "vllm.max-tokens", defaultValue = "512")
+    int maxTokens;
+
+    @ConfigProperty(name = "vllm.temperature", defaultValue = "0.2")
+    double temperature;
+
     private static String stackTrace(Throwable t) {
-        var sw = new java.io.StringWriter();
-        t.printStackTrace(new java.io.PrintWriter(sw));
+        StringWriter sw = new StringWriter();
+        t.printStackTrace(new PrintWriter(sw));
         return sw.toString();
+    }
+
+    private static String bestMessage(Throwable t) {
+        if (t == null) return "(erro desconhecido)";
+        if (t.getMessage() != null && !t.getMessage().isBlank()) return t.getMessage();
+        Throwable c = t.getCause();
+        if (c != null && c != t) return bestMessage(c);
+        return t.getClass().getName();
+    }
+
+    private String render(String prompt, String answer, String error) {
+        return index
+                .data("prompt", prompt == null ? "" : prompt)
+                .data("answer", answer == null ? "" : answer)
+                .data("error", error == null ? "" : error)
+                .render();
     }
 
     @GET
     @Produces(MediaType.TEXT_HTML)
     public String home() {
-        return index
-            .data("prompt", "Descreva a imagem em português.")
-            .data("error", "")
-            .data("answer", "")
-            .render();
+        return render(defaultPrompt, "", "");
     }
 
     public static class InferForm {
@@ -58,7 +94,7 @@ public class InferResource {
 
         @FormParam("image")
         @PartType(MediaType.TEXT_PLAIN)
-        public String imageFileName; // nem sempre vem preenchido; ok
+        public String imageFileName;
     }
 
     @POST
@@ -66,54 +102,66 @@ public class InferResource {
     @Consumes(MediaType.MULTIPART_FORM_DATA)
     @Produces(MediaType.TEXT_HTML)
     public String infer(@BeanParam InferForm form) {
-        var timer = registry.timer("qwen3vl_infer_seconds");
+        Timer timer = registry.timer("qwen3vl_infer_seconds");
 
-        try {
-            if (form.image == null || form.image.length == 0) {
-                return index.data("prompt", form.prompt).data("error", "Imagem vazia.").render();
+        String prompt = (form == null || form.prompt == null || form.prompt.isBlank())
+                ? defaultPrompt
+                : form.prompt.trim();
+
+        if (form == null || form.image == null || form.image.length == 0) {
+            registry.counter("qwen3vl_infer_total", "status", "bad_request").increment();
+            return render(prompt, "", "Imagem vazia.");
+        }
+
+        // Só para UX: se você estiver com placeholder/local ainda
+        if (baseUrl != null) {
+            String bu = baseUrl.trim();
+            if (bu.isEmpty() || bu.contains("localhost")) {
+                registry.counter("qwen3vl_infer_total", "status", "not_configured").increment();
+                return render(prompt, "", "Backend vLLM ainda não configurado (VLLM_BASE_URL).");
             }
+        }
 
-            String prompt = (form.prompt == null || form.prompt.isBlank())
-                    ? "Descreva a imagem em português."
-                    : form.prompt.trim();
+        String dataUrl = "data:image/jpeg;base64," + Base64.getEncoder().encodeToString(form.image);
 
-            // Heurística simples: se não souber o mime, use jpeg.
-            String dataUrl = "data:image/jpeg;base64," + Base64.getEncoder().encodeToString(form.image);
+        ChatCompletionRequest req = new ChatCompletionRequest(
+                modelId,
+                List.of(new ChatCompletionRequest.Message(
+                        "user",
+                        List.of(
+                                ChatCompletionRequest.ContentPart.text(prompt),
+                                ChatCompletionRequest.ContentPart.image(dataUrl)
+                        )
+                )),
+                temperature,
+                maxTokens
+        );
 
-            ChatCompletionRequest req = new ChatCompletionRequest(
-                    "qwen3-vl-4b-instruct",
-                    List.of(new ChatCompletionRequest.Message("user",
-                            List.of(
-                                    ChatCompletionRequest.ContentPart.text(prompt),
-                                    ChatCompletionRequest.ContentPart.image(dataUrl)
-                            ))),
-                    0.2,
-                    512
-            );
+        long start = System.nanoTime();
+        try {
+            ChatCompletionResponse resp = vllm.chatCompletions(req);
 
-            ChatCompletionResponse resp = timer.record(() -> vllm.chatCompletions(req));
+            timer.record(Duration.ofNanos(System.nanoTime() - start));
 
-            String answer = (resp.choices() != null && !resp.choices().isEmpty()
-                    && resp.choices().get(0).message() != null)
-                    ? resp.choices().get(0).message().content()
-                    : "(sem resposta)";
+            String answer = "(sem resposta)";
+            if (resp != null && resp.choices() != null && !resp.choices().isEmpty()
+                    && resp.choices().get(0) != null
+                    && resp.choices().get(0).message() != null
+                    && resp.choices().get(0).message().content() != null) {
+                answer = resp.choices().get(0).message().content();
+            }
 
             registry.counter("qwen3vl_infer_total", "status", "success").increment();
-            return index.data("prompt", prompt).data("answer", answer).render();
+            return render(prompt, answer, "");
 
-            } catch (Exception e) {
-                registry.counter("qwen3vl_infer_total", "status", "error").increment();
+        } catch (Exception e) {
+            timer.record(Duration.ofNanos(System.nanoTime() - start));
+            registry.counter("qwen3vl_infer_total", "status", "error").increment();
 
-                String details = (e.getMessage() != null && !e.getMessage().isBlank())
-                        ? e.getMessage()
-                        : stackTrace(e);
+            String shortMsg = bestMessage(e);
+            String details = shortMsg + "\n\n" + stackTrace(e);
 
-                return index
-                        .data("prompt", form.prompt == null ? "" : form.prompt)
-                        .data("answer", "")
-                        .data("error", details)
-                        .render();
-            }
-
+            return render(prompt, "", details);
+        }
     }
 }
