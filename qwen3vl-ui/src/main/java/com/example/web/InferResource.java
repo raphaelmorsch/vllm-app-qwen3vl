@@ -35,7 +35,11 @@ public class InferResource {
     @GET
     @Produces(MediaType.TEXT_HTML)
     public String home() {
-        return index.data("prompt", "Descreva a imagem em português.").render();
+        return index
+            .data("prompt", "Descreva a imagem em português.")
+            .data("error", null)
+            .data("answer", null)
+            .render();
     }
 
     public static class InferForm {
