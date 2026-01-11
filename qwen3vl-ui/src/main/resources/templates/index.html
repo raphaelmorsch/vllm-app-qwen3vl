@@ -1,43 +1,409 @@
 <!doctype html>
 <html lang="pt-br">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Qwen3-VL – Demo UI (Quarkus)</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OpenShift AI • Qwen3-VL Demo</title>
   <style>
-    body { font-family: system-ui, Arial; margin: 2rem; max-width: 920px; }
-    textarea { width: 100%; min-height: 120px; }
-    .row { margin: 1rem 0; }
-    .answer { white-space: pre-wrap; background: #f6f6f6; padding: 1rem; border-radius: 8px; }
-    .err { color: #b00020; }
+    :root{
+      --rh-red: #ee0000;
+      --rh-red-dark: #b80000;
+      --bg: #ffffff;
+      --surface: #ffffff;
+      --surface-2: #f5f5f5;
+      --text: #151515;
+      --muted: #6a6e73;
+      --border: #d2d2d2;
+      --shadow: 0 10px 24px rgba(3, 3, 3, .08);
+      --radius: 14px;
+      --radius-sm: 10px;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body{
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(1200px 400px at 10% -10%, rgba(238, 0, 0, .10), transparent 60%),
+        radial-gradient(900px 320px at 90% 0%, rgba(238, 0, 0, .06), transparent 60%),
+        var(--bg);
+    }
+
+    a { color: inherit; }
+
+    .topbar{
+      border-bottom: 1px solid var(--border);
+      background: rgba(255,255,255,.9);
+      backdrop-filter: blur(8px);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .topbar-inner{
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .brand{
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 220px;
+    }
+
+    .mark{
+      width: 36px;
+      height: 36px;
+      border-radius: 9px;
+      background: var(--rh-red);
+      box-shadow: 0 10px 18px rgba(238, 0, 0, .18);
+      display: grid;
+      place-items: center;
+      color: #fff;
+      font-weight: 800;
+      letter-spacing: .5px;
+    }
+
+    .brand h1{
+      font-size: 14px;
+      margin: 0;
+      line-height: 1.2;
+      font-weight: 800;
+      letter-spacing: .2px;
+    }
+    .brand p{
+      margin: 2px 0 0 0;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .badge{
+      font-size: 12px;
+      border: 1px solid var(--border);
+      padding: 8px 10px;
+      border-radius: 999px;
+      color: var(--muted);
+      background: #fff;
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+      white-space: nowrap;
+    }
+    .dot{
+      width: 10px; height: 10px; border-radius: 50%;
+      background: #3e8635; /* green */
+      box-shadow: 0 0 0 4px rgba(62,134,53,.15);
+    }
+
+    .container{
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 26px 20px 60px;
+    }
+
+    .hero{
+      display: grid;
+      grid-template-columns: 1.15fr .85fr;
+      gap: 18px;
+      align-items: stretch;
+    }
+    @media (max-width: 980px){
+      .hero { grid-template-columns: 1fr; }
+      .brand{ min-width: unset; }
+    }
+
+    .card{
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .card-header{
+      padding: 18px 18px 0 18px;
+    }
+    .card-title{
+      margin: 0;
+      font-size: 22px;
+      letter-spacing: -0.2px;
+      line-height: 1.2;
+      font-weight: 850;
+    }
+    .card-subtitle{
+      margin: 10px 0 0 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+      max-width: 60ch;
+    }
+
+    .card-body{
+      padding: 18px;
+    }
+
+    .section-title{
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin: 0 0 10px 0;
+    }
+
+    form{ margin: 0; }
+
+    .field{
+      display: grid;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+    label{
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .help{
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: -4px;
+    }
+
+    textarea{
+      width: 100%;
+      min-height: 140px;
+      resize: vertical;
+      padding: 12px 12px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      font: inherit;
+      line-height: 1.45;
+      outline: none;
+      background: #fff;
+    }
+    textarea:focus{
+      border-color: rgba(238,0,0,.55);
+      box-shadow: 0 0 0 4px rgba(238,0,0,.12);
+    }
+
+    input[type="file"]{
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: var(--radius-sm);
+      border: 1px dashed var(--border);
+      background: #fff;
+    }
+
+    .actions{
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+
+    .btn{
+      appearance: none;
+      border: 1px solid transparent;
+      border-radius: 999px;
+      padding: 12px 16px;
+      font-weight: 800;
+      font-size: 14px;
+      cursor: pointer;
+      transition: transform .05s ease, box-shadow .2s ease, background .2s ease, border-color .2s ease;
+    }
+    .btn:active{ transform: translateY(1px); }
+
+    .btn-primary{
+      background: var(--rh-red);
+      color: #fff;
+      box-shadow: 0 10px 16px rgba(238,0,0,.18);
+    }
+    .btn-primary:hover{ background: var(--rh-red-dark); }
+
+    .btn-ghost{
+      background: #fff;
+      border-color: var(--border);
+      color: var(--text);
+    }
+    .btn-ghost:hover{
+      border-color: rgba(238,0,0,.35);
+      box-shadow: 0 8px 14px rgba(3,3,3,.06);
+    }
+
+    .callout{
+      border-radius: var(--radius);
+      padding: 14px 14px;
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+    }
+    .callout strong{ font-weight: 850; }
+    .callout p{ margin: 8px 0 0 0; color: var(--muted); line-height: 1.5; }
+
+    .alert{
+      border-radius: var(--radius);
+      padding: 12px 14px;
+      margin: 0 0 14px 0;
+      border: 1px solid;
+      display: grid;
+      gap: 6px;
+    }
+    .alert-error{
+      border-color: rgba(183, 0, 0, .35);
+      background: rgba(238, 0, 0, .08);
+    }
+    .alert-success{
+      border-color: rgba(62, 134, 53, .35);
+      background: rgba(62, 134, 53, .08);
+    }
+    .alert-title{
+      font-weight: 850;
+      font-size: 14px;
+    }
+    .alert-body{
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.45;
+      white-space: pre-wrap;
+    }
+
+    .footer{
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: 12px;
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+      border-top: 1px solid var(--border);
+      padding-top: 14px;
+    }
+
+    code{
+      background: rgba(3,3,3,.06);
+      padding: 2px 6px;
+      border-radius: 8px;
+      font-size: 12px;
+    }
   </style>
 </head>
+
 <body>
-  <h1>Qwen3-VL – Inferência Multimodal</h1>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <div class="mark">RH</div>
+        <div>
+          <h1>OpenShift AI • Qwen3-VL</h1>
+          <p>Demo de inferência multimodal (imagem + texto) com vLLM</p>
+        </div>
+      </div>
 
-  <form action="/infer" method="post" enctype="multipart/form-data">
-    <div class="row">
-      <label><b>Prompt</b></label><br/>
-      <textarea name="prompt">{prompt ?: "Descreva a imagem em português."}</textarea>
+      <div class="badge" title="Aplicação online">
+        <span class="dot"></span>
+        <span>Route ativa</span>
+      </div>
     </div>
+  </header>
 
-    <div class="row">
-      <label><b>Imagem</b></label><br/>
-      <input type="file" name="image" accept="image/*" required>
+  <main class="container">
+    <div class="hero">
+
+      <!-- Card principal -->
+      <section class="card">
+        <div class="card-header">
+          <h2 class="card-title">Inferência multimodal</h2>
+          <p class="card-subtitle">
+            Faça upload de uma imagem, ajuste o prompt e execute uma inferência.
+            Quando o Model Server estiver pronto, você só precisa apontar a aplicação para o endpoint do vLLM.
+          </p>
+        </div>
+
+        <div class="card-body">
+
+          {#if error}
+          <div class="alert alert-error">
+            <div class="alert-title">Erro</div>
+            <div class="alert-body">{error}</div>
+          </div>
+          {/if}
+
+          {#if answer}
+          <div class="alert alert-success">
+            <div class="alert-title">Resposta do modelo</div>
+            <div class="alert-body">{answer}</div>
+          </div>
+          {/if}
+
+          <div class="section-title">Entrada</div>
+
+          <form action="/infer" method="post" enctype="multipart/form-data">
+            <div class="field">
+              <label for="prompt">Prompt</label>
+              <div class="help">Dica: experimente “Descreva a imagem em português com foco em objetos e ações”.</div>
+              <textarea id="prompt" name="prompt">{prompt ?: "Descreva a imagem em português."}</textarea>
+            </div>
+
+            <div class="field">
+              <label for="image">Imagem</label>
+              <div class="help">PNG/JPG (quanto menor, melhor para testes). O arquivo é enviado apenas para inferência.</div>
+              <input id="image" type="file" name="image" accept="image/*" required />
+            </div>
+
+            <div class="actions">
+              <button class="btn btn-primary" type="submit">Executar inferência</button>
+              <button class="btn btn-ghost" type="button" onclick="document.getElementById('prompt').value='Descreva a imagem em português.';">
+                Resetar prompt
+              </button>
+            </div>
+          </form>
+
+          <div class="footer">
+            <div>Observabilidade: métricas em <code>/q/metrics</code></div>
+            <div>Health: <code>/q/health</code></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Card lateral -->
+      <aside class="card">
+        <div class="card-header">
+          <h2 class="card-title" style="font-size:18px;">Como isso funciona</h2>
+          <p class="card-subtitle" style="max-width: none;">
+            A aplicação envia o prompt e a imagem (base64) para o endpoint compatível com OpenAI do vLLM
+            e renderiza a resposta.
+          </p>
+        </div>
+
+        <div class="card-body">
+          <div class="callout">
+            <strong>Configuração do backend</strong>
+            <p>
+              Você pode apontar o endpoint via variável de ambiente <code>VLLM_BASE_URL</code> e,
+              se necessário, usar <code>VLLM_API_KEY</code>.
+            </p>
+          </div>
+
+          <div style="height: 12px;"></div>
+
+          <div class="callout">
+            <strong>Próximos passos</strong>
+            <p>
+              1) Subir o Model Server do Qwen3-VL<br/>
+              2) Atualizar <code>VLLM_BASE_URL</code><br/>
+              3) Validar latência/throughput com as métricas em Prometheus/Grafana
+            </p>
+          </div>
+        </div>
+      </aside>
+
     </div>
-
-    <div class="row">
-      <button type="submit">Inferir</button>
-    </div>
-  </form>
-
-  {#if error}
-    <p class="err"><b>Erro:</b> {error}</p>
-  {/if}
-
-  {#if answer}
-    <h2>Resposta</h2>
-    <div class="answer">{answer}</div>
-  {/if}
+  </main>
 </body>
 </html>
