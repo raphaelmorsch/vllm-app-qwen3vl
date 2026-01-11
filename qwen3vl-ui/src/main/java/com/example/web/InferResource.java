@@ -6,7 +6,6 @@ import com.openshiftai.vllm.VllmClient;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.quarkus.qute.Location;
 import io.quarkus.qute.Template;
-import io.quarkus.qute.TemplateInstance;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
@@ -35,8 +34,8 @@ public class InferResource {
 
     @GET
     @Produces(MediaType.TEXT_HTML)
-    public TemplateInstance home() {
-        return index.data("prompt", "Descreva a imagem em português.");
+    public String home() {
+        return index.data("prompt", "Descreva a imagem em português.").render();
     }
 
     public static class InferForm {
@@ -56,12 +55,12 @@ public class InferResource {
     @Path("/infer")
     @Consumes(MediaType.MULTIPART_FORM_DATA)
     @Produces(MediaType.TEXT_HTML)
-    public TemplateInstance infer(@BeanParam InferForm form) {
+    public String infer(@BeanParam InferForm form) {
         var timer = registry.timer("qwen3vl_infer_seconds");
 
         try {
             if (form.image == null || form.image.length == 0) {
-                return index.data("prompt", form.prompt).data("error", "Imagem vazia.");
+                return index.data("prompt", form.prompt).data("error", "Imagem vazia.").render();
             }
 
             String prompt = (form.prompt == null || form.prompt.isBlank())
@@ -90,11 +89,11 @@ public class InferResource {
                     : "(sem resposta)";
 
             registry.counter("qwen3vl_infer_total", "status", "success").increment();
-            return index.data("prompt", prompt).data("answer", answer);
+            return index.data("prompt", prompt).data("answer", answer).render();
 
         } catch (Exception e) {
             registry.counter("qwen3vl_infer_total", "status", "error").increment();
-            return index.data("prompt", form.prompt).data("error", e.getMessage());
+            return index.data("prompt", form.prompt).data("error", e.getMessage()).render();
         }
     }
 }
