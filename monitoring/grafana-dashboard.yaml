@@ -41,10 +41,10 @@ spec:
           "type": "timeseries",
           "targets": [
             {
-              "expr": "avg by (model_name)(vllm:gpu_cache_usage_perc)"
+              "expr": "avg by (model_name)(vllm:kv_cache_usage_perc)"
             },
             {
-              "expr": "avg by (model_name)(vllm:cpu_cache_usage_perc)"
+              "expr": "avg by (model_name)(vllm:kv_cache_usage_perc)"
             }
           ]
         },
