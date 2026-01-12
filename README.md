@@ -276,7 +276,7 @@ oc adm policy add-cluster-role-to-user \
 Pegue o token:
 
 ```shell
-oc create token grafana-prometheus -n grafana
+oc create token grafana-prometheus --duration=720h -n grafana
 ```
 
 ---
