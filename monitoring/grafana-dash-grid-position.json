@@ -1,0 +1,114 @@
+    {
+      "title": "vLLM Full Observability (Latency / Tokens / Queue / Cache)",
+      "panels": [
+        {
+          "title": "p95 Latency (seconds)",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+          "targets": [
+            {
+              "expr": "histogram_quantile(0.95, sum by (le, model_name)(rate(vllm:e2e_request_latency_seconds_bucket[5m])))"
+            }
+          ]
+        },
+        {
+          "title": "Requests Running / Waiting / Swapped",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+          "targets": [
+            {
+              "expr": "sum by (model_name)(vllm:num_requests_running)"
+            },
+            {
+              "expr": "sum by (model_name)(vllm:num_requests_waiting)"
+            },
+            {
+              "expr": "sum by (model_name)(vllm:num_requests_swapped)"
+            }
+          ]
+        },
+        {
+          "title": "KV Cache Usage (GPU / CPU)",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+          "targets": [
+            {
+              "expr": "avg by (model_name)(vllm:kv_cache_usage_perc)"
+            },
+            {
+              "expr": "avg by (model_name)(vllm:kv_cache_usage_perc)"
+            }
+          ]
+        },
+        {
+          "title": "Prompt Tokens Total",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+          "targets": [
+            {
+              "expr": "sum by (model_name)(rate(vllm:prompt_tokens_total[5m]))"
+            }
+          ]
+        },
+        {
+          "title": "Generation Tokens Total",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+          "targets": [
+            {
+              "expr": "sum by (model_name)(rate(vllm:generation_tokens_total[5m]))"
+            }
+          ]
+        },
+        {
+          "title": "Time to First Token (TTFT) p95",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+          "targets": [
+            {
+              "expr": "histogram_quantile(0.95, sum by (le, model_name)(rate(vllm:time_to_first_token_seconds_bucket[5m])))"
+            }
+          ]
+        },
+        {
+          "title": "Inter-Token Latency (p95)",
+          "type": "timeseries",
+          "gridPos" : { "h": 8, "w": 12, "x": 0, "y": 24 },
+          "targets": [
+            {
+              "expr": "histogram_quantile(0.95, sum by (le, model_name)(rate(vllm:time_per_output_token_seconds_bucket[5m])))"
+            }
+          ]
+        },
+        {
+          "title": "Request Queue Time (p95)",
+          "type": "timeseries",
+          "gridPos" : { "h": 8, "w": 12, "x": 12, "y": 24 },
+          "targets": [
+            {
+              "expr": "histogram_quantile(0.95, sum by (le, model_name)(rate(vllm:request_queue_time_seconds_bucket[5m])))"
+            }
+          ]
+        },
+        {
+          "title": "Request Inference Time (p95)",
+          "type": "timeseries",
+          "gridPos" : { "h": 8, "w": 12, "x": 0, "y": 32 },
+          "targets": [
+            {
+              "expr": "histogram_quantile(0.95, sum by (le, model_name)(rate(vllm:request_inference_time_seconds_bucket[5m])))"
+            }
+          ]
+        },
+        {
+          "title": "Request Success / Errors",
+          "type": "timeseries",
+          "gridPos" : { "h": 8, "w": 12, "x": 12, "y": 32 },
+          "targets": [
+            {
+              "expr": "sum by (finished_reason, model_name)(rate(vllm:request_success_total[5m]))"
+            }
+          ]
+        }
+      ]
+    }
